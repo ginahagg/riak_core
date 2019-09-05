@@ -233,7 +233,7 @@ do_init(State = #state{index=Index, mod=Mod, forward=Forward}) ->
             ModState0 = 
                 case lists:keyfind(pool, 1, Props) of
                     {pool, WorkerMod, PoolSize, WorkerArgs}=PoolConfig ->
-                        ?LOG_INFO("Starting vnode worker pool " ++ 
+                        logger:info("Starting vnode worker pool " ++ 
                                         "~p with size of ~p~n",
                                     [WorkerMod, PoolSize]),
                         {ok, PoolPid} =
@@ -246,7 +246,7 @@ do_init(State = #state{index=Index, mod=Mod, forward=Forward}) ->
                         % pool, it should export a function add_vnode_pool/2
                         case erlang:function_exported(Mod, add_vnode_pool, 2) of
                             true ->
-                                ?LOG_INFO("Adding vnode_pool ~w to ~w state",
+                                logger:info("Adding vnode_pool ~w to ~w state",
                                             [PoolPid, Mod]),
                                 Mod:add_vnode_pool(PoolPid, ModState);
                             false ->
@@ -261,7 +261,7 @@ do_init(State = #state{index=Index, mod=Mod, forward=Forward}) ->
             Timeout2 = Timeout + rand:uniform(Timeout),
             State2 = State#state{modstate=ModState, inactivity_timeout=Timeout2,
                                  pool_pid=PoolPid, pool_config=PoolConfig},
-            ?LOG_DEBUG("vnode :: ~p/~p :: ~p~n", [Mod, Index, Forward]),
+            logger:debug("vnode :: ~p/~p :: ~p~n", [Mod, Index, Forward]),
             State3 = mod_set_forwarding(Forward, State2),
             {ok, State3}
     end.
@@ -361,7 +361,7 @@ vnode_command(Sender, Request, State=#state{mod=Mod,
     case catch Mod:handle_command(Request, Sender, ModState) of
         {'EXIT', ExitReason} ->
             reply(Sender, {vnode_error, ExitReason}),
-            ?LOG_ERROR("~p command failed ~p", [Mod, ExitReason]),
+            logger:error("~p command failed ~p", [Mod, ExitReason]),
             {stop, ExitReason, State#state{modstate=ModState}};
         continue ->
             continue(State, ModState);
@@ -401,7 +401,7 @@ vnode_coverage(Sender, Request, KeySpaces, State=#state{index=Index,
         Forwards when is_list(Forwards) ->
             Action = Mod:handle_coverage(Request, KeySpaces, Sender, ModState);
         NextOwner ->
-            ?LOG_DEBUG("Forwarding coverage ~p -> ~p: ~p~n", [node(), NextOwner, Index]),
+            logger:debug("Forwarding coverage ~p -> ~p: ~p~n", [node(), NextOwner, Index]),
             riak_core_vnode_master:coverage(Request, {Index, NextOwner},
                                             KeySpaces, Sender,
                                             riak_core_vnode_master:reg_name(Mod)),
@@ -476,7 +476,7 @@ forward_request(_, Request, HOTarget, _ResizeTarget, Sender, State) ->
     vnode_forward(explicit, HOTarget, Sender, Request, State).
 
 vnode_forward(Type, ForwardTo, Sender, Request, State) ->
-    ?LOG_DEBUG("Forwarding (~p) {~p,~p} -> ~p~n",
+    logger:debug("Forwarding (~p) {~p,~p} -> ~p~n",
                 [Type, State#state.index, node(), ForwardTo]),
     riak_core_vnode_master:command_unreliable(ForwardTo, Request, Sender,
                                               riak_core_vnode_master:reg_name(State#state.mod)).
@@ -560,7 +560,7 @@ active(trigger_delete, State=#state{mod=Mod,modstate=ModState,index=Idx}) ->
     case mark_delete_complete(Idx, Mod) of
         {ok, _NewRing} ->
             {ok, NewModState} = Mod:delete(ModState),
-            ?LOG_DEBUG("~p ~p vnode deleted", [Idx, Mod]);
+            logger:debug("~p ~p vnode deleted", [Idx, Mod]);
         _ -> NewModState = ModState
     end,
     maybe_shutdown_pool(State),
@@ -570,7 +570,7 @@ active(unregistered, State=#state{mod=Mod, index=Index}) ->
     %% Add exclusion so the ring handler will not try to spin this vnode
     %% up until it receives traffic.
     riak_core_handoff_manager:add_exclusion(Mod, Index),
-    ?LOG_DEBUG("~p ~p vnode excluded and unregistered.",
+    logger:debug("~p ~p vnode excluded and unregistered.",
                 [Index, Mod]),
     {stop, normal, State#state{handoff_target=none,
                                handoff_type=undefined,
@@ -689,10 +689,10 @@ finish_handoff(SeenIdxs, State=#state{mod=Mod,
             %% running on non-existant data.
             maybe_shutdown_pool(State),
             {ok, NewModState} = Mod:delete(ModState),
-            ?LOG_DEBUG("~p ~p vnode finished handoff and deleted.",
+            logger:debug("~p ~p vnode finished handoff and deleted.",
                         [Idx, Mod]),
             riak_core_vnode_manager:unregister_vnode(Idx, Mod),
-            ?LOG_DEBUG("vnode hn/fwd :: ~p/~p :: ~p -> ~p~n",
+            logger:debug("vnode hn/fwd :: ~p/~p :: ~p -> ~p~n",
                         [State#state.mod, State#state.index, State#state.forward, HN]),
             State2 = mod_set_forwarding(HN, State),
             continue(State2#state{modstate={deleted,NewModState}, % like to fail if used
@@ -742,7 +742,7 @@ handle_event({set_forwarding, undefined}, _StateName,
     %% ignore requests to stop forwarding.
     continue(State);
 handle_event({set_forwarding, ForwardTo}, _StateName, State) ->
-    ?LOG_DEBUG("vnode fwd :: ~p/~p :: ~p -> ~p~n",
+    logger:debug("vnode fwd :: ~p/~p :: ~p -> ~p~n",
                 [State#state.mod, State#state.index, State#state.forward, ForwardTo]),
     State2 = mod_set_forwarding(ForwardTo, State),
     continue(State2#state{forward=ForwardTo});
@@ -808,7 +808,7 @@ handle_sync_event({handoff_data,BinObj}, _From, StateName,
             {reply, ok, StateName, State#state{modstate=NewModState},
              State#state.inactivity_timeout};
         {reply, {error, Err}, NewModState} ->
-            ?LOG_ERROR("~p failed to store handoff obj: ~p", [Mod, Err]),
+            logger:error("~p failed to store handoff obj: ~p", [Mod, Err]),
             {reply, {error, Err}, StateName, State#state{modstate=NewModState},
              State#state.inactivity_timeout}
     end;
@@ -862,9 +862,9 @@ handle_info({'EXIT', Pid, Reason},
         Reason when Reason == normal; Reason == shutdown ->
             continue(State#state{pool_pid=undefined});
         _ ->
-            ?LOG_ERROR("~p ~p worker pool crashed ~p\n", [Index, Mod, Reason]),
+            logger:error("~p ~p worker pool crashed ~p\n", [Index, Mod, Reason]),
             {pool, WorkerModule, PoolSize, WorkerArgs}=PoolConfig,
-            ?LOG_DEBUG("starting worker pool ~p with size "
+            logger:debug("starting worker pool ~p with size "
                         "of ~p for vnode ~p.",
                         [WorkerModule, PoolSize, Index]),
             {ok, NewPoolPid} =
@@ -885,7 +885,7 @@ handle_info({'DOWN',_Ref,process,_Pid,normal}, _StateName,
     continue(State);
 handle_info(Info, _StateName,
             State=#state{mod=Mod,modstate={deleted, _},index=Index}) ->
-    ?LOG_INFO("~p ~p ignored handle_info ~p - vnode unregistering\n",
+    logger:info("~p ~p ignored handle_info ~p - vnode unregistering\n",
                [Index, Mod, Info]),
     continue(State);
 handle_info({'EXIT', Pid, Reason}, StateName, State=#state{mod=Mod,modstate=ModState}) ->
@@ -930,8 +930,8 @@ terminate(Reason, _StateName, #state{mod=Mod, modstate=ModState,
                 ok
         end
     catch C:T ->
-        ?LOG_ERROR("Error while shutting down vnode worker pool ~p:~p trace : ~p",
-                    [C, T, erlang:get_stacktrace()])
+        logger:error("Error while shutting down vnode worker pool ~p:~p trace : ~p",
+                    [C, T, erlang:get_log()])
     after
         case ModState of
             %% Handoff completed, Mod:delete has been called, now terminate.
@@ -959,7 +959,7 @@ maybe_handoff(TargetIdx, TargetNode,
                   Target ->
                       not ExistingHO;
                   _ ->
-                      ?LOG_INFO("~s/~b: handoff request to ~p before "
+                      logger:info("~s/~b: handoff request to ~p before "
                                  "finishing handoff to ~p",
                                  [Mod, Idx, Target, CurrentTarget]),
                       not ExistingHO
@@ -1097,7 +1097,7 @@ queue_work(PoolName, Work, From, VnodeWrkPool) ->
         end,
     case whereis(PoolName0) of
         undefined ->
-            ?LOG_INFO("Using vnode pool as ~w pool is not registered",
+            logger:info("Using vnode pool as ~w pool is not registered",
                         [PoolName0]),
             riak_core_stat:update({worker_pool, unregistered}),
             riak_core_vnode_worker_pool:handle_work(VnodeWrkPool, Work, From);
