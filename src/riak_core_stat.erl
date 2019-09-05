@@ -43,7 +43,7 @@
 -define(SERVER, ?MODULE).
 
 -define(APP, riak_core).
-
+-include_lib("kernel/include/logger.hrl").
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
@@ -155,7 +155,7 @@ code_change(_OldVsn, State, _Extra) ->
 exometer_update(Name, Value) ->
     case exometer:update(Name, Value) of
         {error, not_found} ->
-            lager:debug("~p not found on update.", [Name]);
+            ?LOG_DEBUG("~p not found on update.", [Name]);
         ok ->
             ok
     end.

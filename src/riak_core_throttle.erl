@@ -75,7 +75,7 @@
         list_to_atom("throttle_limits_" ++ atom_to_list(Key))).
 -define(THROTTLE_ENABLED_KEY(Key),
         list_to_atom("throttle_enabled_" ++ atom_to_list(Key))).
-
+-include_lib("kernel/include/logger.hrl").
 %% @doc Initialize the throttling subsystem. Should be called just once during
 %% startup, although calling multiple times will not have any negative
 %% consequences.
@@ -109,14 +109,14 @@ clear_throttle(AppName, Key) ->
 %% `Key'.
 -spec disable_throttle(app_name(), activity_key()) -> ok.
 disable_throttle(AppName, Key) ->
-    lager:info("Disabling throttle for ~p/~p.", [AppName, Key]),
+    ?LOG_INFO("Disabling throttle for ~p/~p.", [AppName, Key]),
     set_value(AppName, ?THROTTLE_ENABLED_KEY(Key), false).
 
 %% @doc Enables the throttle for the activity identified by `AppName' and
 %% `Key'.
 -spec enable_throttle(app_name(), activity_key()) -> ok.
 enable_throttle(AppName, Key) ->
-    lager:info("Enabling throttle for ~p/~p.", [AppName, Key]),
+    ?LOG_INFO("Enabling throttle for ~p/~p.", [AppName, Key]),
     set_value(AppName, ?THROTTLE_ENABLED_KEY(Key), true).
 
 %% @doc Returns `true' if the throttle for the activity identified by `AppName'
@@ -335,7 +335,7 @@ validate_limits(AppName, Key, Limits) ->
         [] ->
             ok;
         Messages ->
-            lager:error("Invalid throttle limits for application ~p, activity ~p: ~p.",
+            ?LOG_ERROR("Invalid throttle limits for application ~p, activity ~p: ~p.",
                         [AppName, Key, Messages]),
             error(invalid_throttle_limits)
     end.
@@ -369,7 +369,7 @@ maybe_log_throttle_change(AppName, Key, NewValue, Reason) ->
         true ->
             ok;
         false ->
-            lager:info("Changing throttle for ~p/~p from ~p to ~p based on ~ts",
+            ?LOG_INFO("Changing throttle for ~p/~p from ~p to ~p based on ~ts",
                        [AppName, Key, OldValue, NewValue, Reason])
     end.
 

@@ -94,7 +94,7 @@
 -type mm_nodename_opt() :: {nodename, term()}.
 -type mm_opt()          :: mm_path_opt() | mm_nodename_opt().
 -type mm_opts()         :: [mm_opt()].
-
+-include_lib("kernel/include/logger.hrl").
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -283,7 +283,7 @@ graft({PKey, Context}) ->
         undefined ->
             %% There would have to be a serious error in implementation to hit this case.
             %% Catch if here b/c it would be much harder to detect
-            lager:error("object not found during graft for key: ~p", [PKey]),
+            ?LOG_ERROR("object not found during graft for key: ~p", [PKey]),
             {error, {not_found, PKey}};
          Obj ->
             graft(Context, Obj)

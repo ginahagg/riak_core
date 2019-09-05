@@ -32,11 +32,11 @@
 -define(STATUS_INTERVAL, 2).
 
 -define(log_info(Str, Args),
-        lager:info("~p transfer of ~p from ~p ~p to ~p ~p failed " ++ Str,
+        ?LOG_INFO("~p transfer of ~p from ~p ~p to ~p ~p failed " ++ Str,
                    [Type, Module, SrcNode, SrcPartition, TargetNode,
                     TargetPartition] ++ Args)).
 -define(log_fail(Str, Args),
-        lager:error("~p transfer of ~p from ~p ~p to ~p ~p failed " ++ Str,
+        ?LOG_ERROR("~p transfer of ~p from ~p ~p to ~p ~p failed " ++ Str,
                     [Type, Module, SrcNode, SrcPartition, TargetNode,
                      TargetPartition] ++ Args)).
 
@@ -70,7 +70,7 @@
           notsent_acc          :: term(),
           notsent_fun          :: function()
         }).
-
+-include_lib("kernel/include/logger.hrl").
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -150,7 +150,7 @@ start_fold(TargetNode, Module, {Type, Opts}, ParentPid, SslOpts) ->
 
          RemoteSupportsBatching = remote_supports_batching(TargetNode),
 
-         lager:info("Starting ~p transfer of ~p from ~p ~p to ~p ~p",
+         ?LOG_INFO("Starting ~p transfer of ~p from ~p ~p to ~p ~p",
                     [Type, Module, SrcNode, SrcPartition,
                      TargetNode, TargetPartition]),
 
@@ -228,13 +228,13 @@ start_fold(TargetNode, Module, {Type, Opts}, ParentPid, SslOpts) ->
                  %% so handoff_complete can only be sent once all of the data is
                  %% written.  handle_handoff_data is a sync call, so once
                  %% we receive the sync the remote side will be up to date.
-                 lager:debug("~p ~p Sending final sync",
+                 ?LOG_DEBUG("~p ~p Sending final sync",
                              [SrcPartition, Module]),
                  ok = TcpMod:send(Socket, <<?PT_MSG_SYNC:8>>),
 
                  case TcpMod:recv(Socket, 0, RecvTimeout) of
                      {ok,[?PT_MSG_SYNC|<<"sync">>]} ->
-                         lager:debug("~p ~p Final sync received",
+                         ?LOG_DEBUG("~p ~p Final sync received",
                                      [SrcPartition, Module]);
                      {error, timeout} -> exit({shutdown, timeout})
                  end,
@@ -242,7 +242,7 @@ start_fold(TargetNode, Module, {Type, Opts}, ParentPid, SslOpts) ->
                  FoldTimeDiff = end_fold_time(StartFoldTime),
                  ThroughputBytes = TotalBytes/FoldTimeDiff,
 
-                 ok = lager:info("~p transfer of ~p from ~p ~p to ~p ~p"
+                 ok = ?LOG_INFO("~p transfer of ~p from ~p ~p to ~p ~p"
                             " completed: sent ~s bytes in ~p of ~p objects"
                             " in ~.2f seconds (~s/second)",
                             [Type, Module, SrcNode, SrcPartition, TargetNode, TargetPartition,
@@ -280,7 +280,7 @@ start_fold(TargetNode, Module, {Type, Opts}, ParentPid, SslOpts) ->
              gen_fsm_compat:send_event(ParentPid, {handoff_error, Err, Reason});
          Err:Reason ->
              ?log_fail("because of ~p:~p ~p",
-                       [Err, Reason, erlang:get_stacktrace()]),
+                       [Err, Reason, erlang:get_log()]),
              gen_fsm_compat:send_event(ParentPid, {handoff_error, Err, Reason})
      end.
 
@@ -360,7 +360,7 @@ visit_item2(K, V, Acc) ->
             case Module:encode_handoff_item(K, V) of
                 corrupted ->
                     {Bucket, Key} = K,
-                    lager:warning("Unreadable object ~p/~p discarded",
+                    ?LOG_WARNING("Unreadable object ~p/~p discarded",
                                   [Bucket, Key]),
                     Acc;
                 BinObj ->
@@ -495,11 +495,11 @@ get_handoff_ssl_options() ->
                 Props
             catch
                 error:{badmatch, {FailProp, BadMat}} ->
-                    lager:error("SSL handoff config error: property ~p: ~p.",
+                    ?LOG_ERROR("SSL handoff config error: property ~p: ~p.",
                                 [FailProp, BadMat]),
                     [];
                 X:Y ->
-                    lager:error("Failure processing SSL handoff config "
+                    ?LOG_ERROR("Failure processing SSL handoff config "
                                 "~p: ~p:~p",
                                 [Props, X, Y]),
                     []
@@ -599,12 +599,12 @@ remote_supports_batching(Node) ->
     case catch rpc:call(Node, riak_core_handoff_receiver,
                   supports_batching, []) of
         true ->
-            lager:debug("remote node supports batching, enabling"),
+            ?LOG_DEBUG("remote node supports batching, enabling"),
             true;
         _ ->
             %% whatever the problem here, just revert to the old behavior
             %% which shouldn't matter too much for any single handoff
-            lager:debug("remote node doesn't support batching"),
+            ?LOG_DEBUG("remote node doesn't support batching"),
             false
     end.
 

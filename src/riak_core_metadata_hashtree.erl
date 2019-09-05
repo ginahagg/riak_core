@@ -55,7 +55,7 @@
           %% lock on the tree. undefined otherwise
           lock  :: {internal | external, reference()} | undefined
          }).
-
+-include_lib("kernel/include/logger.hrl").
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -207,7 +207,7 @@ handle_info({'DOWN', BuildRef, process, _Pid, normal}, State=#state{built=BuildR
     State1 = build_done(State),
     {noreply, State1};
 handle_info({'DOWN', BuildRef, process, _Pid, Reason}, State=#state{built=BuildRef}) ->
-    lager:error("building tree failed: ~p", [Reason]),
+    ?LOG_ERROR("building tree failed: ~p", [Reason]),
     State1 = build_error(State),
     {noreply, State1};
 handle_info({'DOWN', LockRef, process, _Pid, _Reason}, State=#state{lock={_, LockRef}}) ->

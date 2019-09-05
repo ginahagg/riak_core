@@ -27,7 +27,7 @@
 
 %% API
 -export([start_link/5, stop/2, shutdown_pool/2, handle_work/3]).
-
+-include_lib("kernel/include/logger.hrl").
 -type worker_pool()
 	% Allows you to set up a DSCP-style set of pools (assuming the
 	% vnode_worker_pool counts as ef.  Otherwise can just have a
@@ -81,7 +81,7 @@ start_link(WorkerMod, PoolSize, WorkerArgs, WorkerProps, PoolType)
                                           WorkerProps],
                                          ?MODULE),
     register(PoolType, Pid),
-    lager:info("Registered worker pool of type ~w and size ~w",
+    ?LOG_INFO("Registered worker pool of type ~w and size ~w",
                [PoolType, PoolSize]),
     {ok, Pid}.
 

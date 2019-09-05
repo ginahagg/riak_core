@@ -43,7 +43,7 @@
 -define(DEFAULT_CHECK_REQUEST_INTERVAL, 50).
 -define(DEFAULT_CHECK_INTERVAL, 5000).
 -define(DEFAULT_OVERLOAD_THRESHOLD, 10000).
-
+-include_lib("kernel/include/logger.hrl").
 reg_name(Mod, Index) ->
     ModBin = atom_to_binary(Mod, latin1),
     IdxBin = list_to_binary(integer_to_list(Index)),
@@ -76,7 +76,7 @@ init([Parent, RegName, Mod, Index]) ->
             true ->
                 Interval;
             false ->
-                lager:warning("Setting riak_core/vnode_check_interval to ~b",
+                ?LOG_WARNING("Setting riak_core/vnode_check_interval to ~b",
                               [Threshold div 2]),
                 Threshold div 2
         end,
@@ -85,7 +85,7 @@ init([Parent, RegName, Mod, Index]) ->
             true ->
                 RequestInterval;
             false ->
-                lager:warning("Setting riak_core/vnode_check_request_interval "
+                ?LOG_WARNING("Setting riak_core/vnode_check_request_interval "
                               "to ~b", [SafeInterval div 2]),
                 SafeInterval div 2
         end,

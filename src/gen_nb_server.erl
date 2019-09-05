@@ -23,6 +23,7 @@
 -author('kevin@hypotheticalabs.com').
 
 -behaviour(gen_server).
+-include_lib("kernel/include/logger.hrl").
 
 %% API
 -export([start_link/4]).
@@ -175,6 +176,6 @@ listen_on(CallbackModule, IpAddrStr, Port) ->
         {ok, IpAddr} ->
             listen_on(CallbackModule, IpAddr, Port);
         Err ->
-            lager:critical("Cannot start listener for ~p on invalid address ~p:~p", [CallbackModule, IpAddrStr, Port]),
+            ?LOG_CRITICAL("Cannot start listener for ~p on invalid address ~p:~p", [CallbackModule, IpAddrStr, Port]),
             Err
     end.

@@ -130,6 +130,7 @@
 -define(SERVER, ?MODULE).
 
 -define(NOT_TRANSFERED(S), S#state.info_table == undefined orelse S#state.entry_table == undefined).
+-include_lib("kernel/include/logger.hrl").
 
 %%%===================================================================
 %%% API
@@ -420,7 +421,7 @@ query_resource(Resource, Types) ->
                   ignore |
                   {stop, term()}.
 init([]) ->
-    lager:debug("Background Manager starting up."),
+    ?LOG_DEBUG("Background Manager starting up."),
     State = #state{info_table=?BG_INFO_ETS_TABLE,
                    entry_table=?BG_ENTRY_ETS_TABLE,
                    enabled=true,
@@ -603,7 +604,7 @@ do_handle_call_exception(Function, Args, State) ->
     try apply(Function, Args)
     catch
         Error ->
-            lager:error("Exception: ~p in function ~p", [Error, Function]),
+            ?LOG_ERROR("Exception: ~p in function ~p", [Error, Function]),
             {reply, Error, State}
     end.
 

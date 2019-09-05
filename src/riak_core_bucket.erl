@@ -51,6 +51,7 @@
 -export_type([property/0, properties/0, bucket/0, nval_set/0]).
 
 -define(METADATA_PREFIX, {core, buckets}).
+-include_lib("kernel/include/logger.hrl").
 
 %% @doc Add a list of defaults to global list of defaults for new
 %%      buckets.  If any item is in Items is already set in the
@@ -70,7 +71,7 @@ set_bucket({<<"default">>, Name}, BucketProps) ->
 set_bucket({Type, _Name}=Bucket, BucketProps0) ->
     case riak_core_bucket_type:get(Type) of
         undefined -> 
-            lager:error("Attempt to set properties of non-existent bucket type ~p", [Bucket]),
+            ?LOG_ERROR("Attempt to set properties of non-existent bucket type ~p", [Bucket]),
             {error, no_type};
         _ -> set_bucket(fun set_bucket_in_metadata/2, Bucket, BucketProps0)
     end;
@@ -84,7 +85,7 @@ set_bucket(StoreFun, Bucket, BucketProps0) ->
             NewBucket = merge_props(BucketProps, OldBucket),
             StoreFun(Bucket, NewBucket);
         {error, Details} ->
-            lager:error("Bucket properties validation failed ~p~n", [Details]),
+            ?LOG_ERROR("Bucket properties validation failed ~p~n", [Details]),
             {error, Details}
     end.
 
@@ -125,7 +126,7 @@ get_bucket({Type, _Name}=Bucket) ->
                                         [{resolver, fun riak_core_bucket_props:resolve/2}]),
     case merge_type_props(TypeMeta, BucketMeta) of
         {error, _}=Error -> 
-            lager:error("~p getting properties of bucket ~p",[Error,Bucket]),
+            ?LOG_ERROR("~p getting properties of bucket ~p",[Error,Bucket]),
             Error;
         Props -> [{name, Bucket} | Props]
     end;

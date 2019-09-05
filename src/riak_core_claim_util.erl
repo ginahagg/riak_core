@@ -39,7 +39,7 @@
 -endif.
 -include_lib("eunit/include/eunit.hrl").
 -endif.
-
+-include_lib("kernel/include/logger.hrl").
 -record(load,    {node,    % Node name
                   num_pri, % Number of primaries
                   num_fb,  % Number of fallbacks
@@ -451,7 +451,7 @@ construct(Complete, M, Owners, DAM, NVal) ->
             case Eligible of
                 [] ->
                     %% No eligible nodes - not enough to meet NVal, use any node
-                    lager:debug("construct -- unable to construct without violating NVal"),
+                    ?LOG_DEBUG("construct -- unable to construct without violating NVal"),
                     {Owners1, DAM1} = prepend_next_owner(M, M, Owners, DAM, NVal),
                     construct(Complete, M, Owners1, DAM1, NVal);
                 _ ->

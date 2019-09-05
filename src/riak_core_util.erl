@@ -82,7 +82,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -export([counter_loop/1,incr_counter/1,decr_counter/1]).
 -endif.
-
+-include_lib("kernel/include/logger.hrl").
 %% R14 Compatibility
 -compile({no_auto_import,[integer_to_list/2]}).
 
@@ -802,7 +802,7 @@ job_class_enabled(Class) ->
             % but since the value *can* be manipulated externally be more
             % accommodating. If someone mucks it up, nothing's going to be
             % allowed, but give them a chance to catch on instead of crashing.
-            _ = lager:error(
+            _ = ?LOG_ERROR(
                 "riak_core.job_accept_class is not a list: ~p", [Other]),
             false
     end.
@@ -839,13 +839,15 @@ job_class_disabled_message(text, Class) ->
 %%    request was received.
 %%
 report_job_request_disposition(true, Class, Mod, Func, Line, Client) ->
-    lager:log(debug,
-        [{pid, erlang:self()}, {module, Mod}, {function, Func}, {line, Line}],
-        "Request '~p' accepted from ~p", [Class, Client]);
+    %lager:log(debug,
+    %    [{pid, erlang:self()}, {module, Mod}, {function, Func}, {line, Line}],
+     %   "Request '~p' accepted from ~p", [Class, Client]);
+    ?LOG_DEBUG("Request '~p' disabled from ~p", [Class, Client]);
 report_job_request_disposition(false, Class, Mod, Func, Line, Client) ->
-    lager:log(warning,
-        [{pid, erlang:self()}, {module, Mod}, {function, Func}, {line, Line}],
-        "Request '~p' disabled from ~p", [Class, Client]).
+   % lager:log(warning,
+   %     [{pid, erlang:self()}, {module, Mod}, {function, Func}, {line, Line}],
+   %     "Request '~p' disabled from ~p", [Class, Client]).
+   ?LOG_WARNING("Request '~p' disabled from ~p", [Class, Client]).
 
 %% ===================================================================
 %% EUnit tests

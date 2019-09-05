@@ -31,7 +31,7 @@
 -compile({pulse_replace_module, [{gen_fsm_compat, pulse_gen_fsm},
                                  {gen_server, pulse_gen_server}]}).
 -endif.
-
+-include_lib("kernel/include/logger.hrl").
 -record(state, {
         module :: atom(),
         modstate :: any()
@@ -62,7 +62,7 @@ init([Module, VNodeIndex, WorkerArgs, WorkerProps, Caller]) ->
     {ok, #state{module=Module, modstate=WorkerState}}.
 
 handle_call(Event, _From, State) ->
-    lager:debug("Vnode worker received synchronous event: ~p.", [Event]),
+    ?LOG_DEBUG("Vnode worker received synchronous event: ~p.", [Event]),
     {reply, ok, State}.
 
 handle_cast({work, Work, WorkFrom, Caller},

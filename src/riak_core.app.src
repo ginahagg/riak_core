@@ -10,7 +10,7 @@
   {applications, [
                   kernel,
                   stdlib,
-                  lager,
+                  %lager,
                   sasl,
                   crypto,
                   riak_sysmon,

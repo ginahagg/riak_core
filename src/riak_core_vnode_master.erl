@@ -39,7 +39,7 @@
 -record(state, {idxtab, sup_name, vnode_mod, legacy}).
 
 -define(LONG_TIMEOUT, 120*1000).
-
+-include_lib("kernel/include/logger.hrl").
 make_name(VNodeMod,Suffix) -> list_to_atom(atom_to_list(VNodeMod)++Suffix).
 reg_name(VNodeMod) ->  make_name(VNodeMod, "_master").
 
@@ -222,7 +222,7 @@ handle_cast({wait_for_service, Service}, State) ->
         undefined ->
             ok;
         _ ->
-            lager:debug("Waiting for service: ~p", [Service]),
+            ?LOG_DEBUG("Waiting for service: ~p", [Service]),
             riak_core:wait_for_service(Service)
     end,
     {noreply, State};
